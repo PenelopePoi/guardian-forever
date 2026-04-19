@@ -75,11 +75,77 @@ echo 1000 > ~/guardian-forever/EPOCHS
 
 ```
 guardian-forever/
-├── forever.log          # Master log — all cycle start/stop times, crash events, metrics
-├── cycle_*.log          # Per-cycle detailed training output (epoch-by-epoch domain scores)
-├── .gitignore           # Excludes logs, node_modules, env files, build artifacts
+├── forever.log                          # Master log — cycle times, crash events, metrics
+├── cycle_*.log                          # Per-cycle training output (epoch-by-epoch scores)
+├── friction-detection/
+│   ├── __init__.py                      # Package init
+│   ├── detector.py                      # FrictionDetector class
+│   ├── experience_agent.py              # ExperienceAgent resolution engine
+│   ├── sentiment.py                     # SentimentAnalyzer (offline, no API)
+│   └── dashboard.py                     # CLI dashboard (standalone)
+├── .gitignore
 └── README.md
 ```
+
+## Experience Agent — Friction Detection
+
+Qualtrics-inspired friction detection system that monitors credit union operations in real time and triggers automated resolution workflows.
+
+### Friction Types Detected
+
+| Friction Type | Trigger | Default Severity |
+|---|---|---|
+| **Complaint Velocity** | 5+ complaints/hour spike | high / critical |
+| **Failed Transactions** | 3+ consecutive declines per member | medium / high |
+| **Negative Sentiment** | Escalation-risk language in call/chat logs | medium / critical |
+| **Compliance Violation** | Unauthorized access, policy bypass patterns | high / critical |
+| **Lockout Cascade** | 3+ account lockouts within 10 minutes | high / critical |
+
+### Components
+
+| File | Purpose |
+|---|---|
+| `friction-detection/detector.py` | `FrictionDetector` — monitors events, detects friction patterns |
+| `friction-detection/experience_agent.py` | `ExperienceAgent` — automated resolution strategies per friction type |
+| `friction-detection/sentiment.py` | `SentimentAnalyzer` — offline keyword + pattern sentiment classifier |
+| `friction-detection/dashboard.py` | CLI dashboard — run standalone for live friction view |
+
+### Quick Start
+
+```python
+from friction_detection.detector import FrictionDetector
+from friction_detection.experience_agent import ExperienceAgent
+
+detector = FrictionDetector()
+agent = ExperienceAgent()
+
+events = [
+    {"type": "complaint", "timestamp": "2026-04-18T14:00:00", "member_id": "M1001", "detail": "Fee dispute"},
+    # ... more events
+]
+
+frictions = detector.detect_friction(events)
+for f in frictions:
+    resolution = agent.handle_friction(f.to_dict())
+    print(resolution.to_dict())
+```
+
+### CLI Dashboard
+
+```bash
+python friction-detection/dashboard.py          # demo mode with sample data
+python friction-detection/dashboard.py --empty  # empty dashboard
+```
+
+### Resolution Strategies
+
+- **Auto-escalate** to supervisor for critical-severity frictions
+- **Generate member communications** — service recovery drafts per affected member
+- **Trigger compliance review** — BSA/AML officer notification, account holds
+- **Alert branch manager** — location-specific insights on complaint spikes
+- **Auto-adjust risk thresholds** — temporary relaxation during cascades (auto-reverts)
+
+All actions are logged to an immutable audit trail for NCUA/BSA-AML compliance.
 
 ## Cycle Output Format
 
